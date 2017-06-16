@@ -13,6 +13,7 @@ namespace Sonata\MediaBundle\Thumbnail;
 
 use Sonata\MediaBundle\Model\MediaInterface;
 use Sonata\MediaBundle\Provider\MediaProviderInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RouterInterface;
 
 class LiipImagineThumbnail implements ThumbnailInterface
@@ -35,16 +36,20 @@ class LiipImagineThumbnail implements ThumbnailInterface
      */
     public function generatePublicUrl(MediaProviderInterface $provider, MediaInterface $media, $format)
     {
-        if (MediaProviderInterface::FORMAT_REFERENCE === $format) {
-            $path = $provider->getReferenceImage($media);
-        } else {
-            $path = $this->router->generate(
-                sprintf('_imagine_%s', $format),
-                array('path' => sprintf('%s/%s_%s.jpg', $provider->generatePath($media), $media->getId(), $format))
-            );
+        $path = $provider->getReferenceImage($media);
+
+        if (MediaProviderInterface::FORMAT_ADMIN === $format || MediaProviderInterface::FORMAT_REFERENCE === $format) {
+            return $path;
         }
 
-        return $provider->getCdnPath($path, $media->getCdnIsFlushable());
+        $path = $provider->getCdnPath($path, $media->getCdnIsFlushable());
+
+        $params = array(
+            'path' => ltrim($path, '/'),
+            'filter' => $format,
+        );
+
+        return $this->router->generate('liip_imagine_filter', $params, UrlGeneratorInterface::ABSOLUTE_URL);
     }
 
     /**
